@@ -11,8 +11,6 @@
 #define BMI088_GYRO_CONFIG_ERROR  0x04
 
 uint8_t BMI088_Init(void);
-void BMI088_Proc(void);
-uint8_t BMI088_Update(void);
 
 float BMI088_GetAx(void);
 float BMI088_GetAy(void);
@@ -23,6 +21,7 @@ float BMI088_GetGy(void);
 float BMI088_GetGz(void);
 
 float BMI088_GetYaw(void);        //连续yaw欧拉角,单位rad
+float BMI088_GetPitch(void);      //绝对pitch欧拉角(加速度计+陀螺仪融合),单位rad
 void  BMI088_YawReset(void);      //当前朝向设为yaw零点
 uint8_t BMI088_YawIsReady(void);  //1:开机零偏标定完成
 

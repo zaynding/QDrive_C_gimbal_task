@@ -32,5 +32,8 @@ qdrive_c_gimbal_task\bmi088.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal
 qdrive_c_gimbal_task\bmi088.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h
 qdrive_c_gimbal_task\bmi088.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h
 qdrive_c_gimbal_task\bmi088.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
+qdrive_c_gimbal_task\bmi088.o: ..\application\control.h
+qdrive_c_gimbal_task\bmi088.o: ../my_lib/qmath.h
+qdrive_c_gimbal_task\bmi088.o: E:\keil5\Core\ARM\ARMCC\Bin\..\include\math.h
 qdrive_c_gimbal_task\bmi088.o: ../Core/Inc/spi.h
 qdrive_c_gimbal_task\bmi088.o: ../Core/Inc/gpio.h

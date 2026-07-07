@@ -1,14 +1,14 @@
-#ifndef RECEIVE_H
+﻿#ifndef RECEIVE_H
 #define RECEIVE_H
 
 #include <stdint.h>
 
 /*
- * ���������
- * �ֱ��ʣ�640 �� 360��16:9
- * �Խ� FOV��90��
- * �Ƶã�HFOV �� 82.15�㣬VFOV �� 52.23��
- * fx = fy �� 367.15 px
+ * 视觉参数
+ * 图像分辨率: 640 x 360, 16:9
+ * 相机 FOV: 对角约 90 度
+ * 估算: HFOV 约 82.15 度, VFOV 约 52.23 度
+ * fx = fy 约 367.15 px
  */
 #define VISION_IMG_W        640.0f
 #define VISION_IMG_H        360.0f
@@ -19,65 +19,37 @@
 
 typedef struct
 {
-    uint8_t valid;            // 1��������Ч��0��δʶ�𵽰���
+    uint8_t valid;          // 1: 靶纸有效, 0: 未识别到靶纸
 
-    int16_t ex_px;            // ˮƽ��������Ϊ��
-    int16_t ey_px;            // ��ֱ��������Ϊ��
+    int16_t ex_px;          // 水平方向像素偏差, 右为正
+    int16_t ey_px;          // 垂直方向像素偏差, 下为正
 
-    float yaw_err_rad;      // yaw �Ƕ�����Ϊ��
-    float pitch_err_rad;    // pitch �Ƕ�����Ϊ��
+    float yaw_err_rad;      // yaw 方向角度误差, 单位 rad
+    float pitch_err_rad;    // pitch 方向角度误差, 单位 rad
 
-    uint32_t rx_time_ms;      // ���һ���յ������ݵ�ʱ��
+    uint32_t rx_time_ms;    // 最后一帧有效视觉数据的接收时间戳
 } VisionErr_t;
 
 
-/* ==================== ����ӿ� ==================== */
+/* ==================== 视觉接收接口 ==================== */
 
 /**
- * @brief  �����Ӿ����ݽ��գ������ж� + DMA��
- * @note   ���� MX_USART6_UART_Init() ֮����ѭ��֮ǰ����һ��
+ * @brief  初始化视觉串口接收, 使用 USART6 + ReceiveToIdle DMA.
+ * @note   在 MX_USART6_UART_Init() 之后、主循环之前调用一次.
  */
 void Vision_Init(void);
 
 /**
- * @brief  ��ȡ����һ֡���������ֻ����
- * @return ָ���ڲ� VisionErr_t �ĳ���ָ��
+ * @brief  获取最新一帧视觉数据.
+ * @return 指向内部 VisionErr_t 的只读指针.
  */
 const VisionErr_t *Vision_GetErr(void);
 
 /**
- * @brief  �ж��Ӿ���·�Ƿ����ߣ����һ֡�Ƿ��ڳ�ʱʱ�����յ���
- * @param  timeout_ms  ���������֡�������λ ms��
- * @return 1�����ߣ�0����ʱ
+ * @brief  判断视觉链路是否在线.
+ * @param  timeout_ms  超时时间, 单位 ms.
+ * @return 1: 在线, 0: 超时.
  */
 uint8_t Vision_IsOnline(uint32_t timeout_ms);
-
-
-/* ==================== 底盘世界坐标(从底盘MCU经UART接收) ====================
- * 世界系遵循IMU.md第9节(FRD): +X前/北 +Y右/东 +Z下
- * 原点在靶纸位置,故(x,y)是小车相对靶纸的位置,单位米 */
-typedef struct
-{
-    float    x;            //小车世界X坐标,单位米(靶纸=原点)
-    float    y;            //小车世界Y坐标,单位米(靶纸=原点)
-    uint8_t  valid;        //1:坐标有效 0:未收到有效坐标
-    uint32_t rx_time_ms;   //最后一次收到坐标帧的时间戳
-} ChassisPos_t;
-
-/**
- * @brief  UART接收底盘世界坐标的处理函数(占位,协议由底盘MCU定义)
- */
-void Chassis_RxProc(void);
-
-/**
- * @brief  读取最新底盘世界位置(只读)
- */
-const ChassisPos_t *Chassis_GetPos(void);
-
-/**
- * @brief  判断底盘坐标是否在线(timeout_ms内收到过)
- */
-uint8_t Chassis_IsOnline(uint32_t timeout_ms);
-
 
 #endif
