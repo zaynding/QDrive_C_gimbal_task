@@ -13,6 +13,7 @@ void Control_Stop(void);
 uint8_t Control_IsStarted(void);
 uint8_t Control_AreMotorsReady(void);
 uint8_t Control_IsIMUOnline(void);
+uint32_t Control_GetIMUAgeMs(void);
 void Control_RetryMotorEnable(void);
 
 uint8_t Control_ResetAttitude(void);

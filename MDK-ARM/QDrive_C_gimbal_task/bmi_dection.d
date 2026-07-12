@@ -33,3 +33,6 @@ qdrive_c_gimbal_task\bmi_dection.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4x
 qdrive_c_gimbal_task\bmi_dection.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h
 qdrive_c_gimbal_task\bmi_dection.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 qdrive_c_gimbal_task\bmi_dection.o: ..\test\bmi_dection.h
+qdrive_c_gimbal_task\bmi_dection.o: ../application/bmi088.h
+qdrive_c_gimbal_task\bmi_dection.o: ../application/control.h
+qdrive_c_gimbal_task\bmi_dection.o: E:\keil5\Core\ARM\ARMCC\Bin\..\include\stdio.h

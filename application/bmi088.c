@@ -41,8 +41,8 @@ static float pitch = 0.0f;
 /* ==================== DMA异步读取状态机 ==================== */
 /* 硬件链路: 陀螺DRDY(PC5)每1ms下降沿 -> EXTI9_5_IRQHandler
  *        -> HAL_GPIO_EXTI_Callback -> 启动 gyro DMA 读(7字节)
- *        -> HAL_SPI_TxRxCpltCallback: gyro相 -> 解析 + 启动 accel DMA 读(8字节)
- *                                     accel相 -> 解析 + Mahony + yaw积分 + Control_Proc
+ *        -> BMI088_DMA_IRQHandler: gyro相 -> 解析 + 启动 accel DMA 读(8字节)
+ *                                  accel相 -> 解析 + Mahony + yaw积分 + 通知控制任务
  */
 typedef enum {
     IMU_PHASE_IDLE  = 0,
@@ -58,6 +58,8 @@ static uint8_t gyro_tx[7]  __attribute__((aligned(4)))  = {0x02 | 0x80, 0,0,0,0,
 static uint8_t gyro_rx[7]  __attribute__((aligned(4)));
 static uint8_t accel_tx[8] __attribute__((aligned(4))) = {0x12 | 0x80, 0,0,0,0,0,0,0};
 static uint8_t accel_rx[8] __attribute__((aligned(4)));
+
+static void spi_dma_init(void);
 
 /* ==================== 基础SPI寄存器读写(仅初始化用,阻塞) ==================== */
 static uint8_t spi_rw(uint8_t data)
@@ -173,6 +175,7 @@ uint8_t BMI088_Init(void)
 
     //初始化到此为止,EXTI由CubeMX使能,首次陀螺DRDY下降沿即启动DMA链
     imu_phase = IMU_PHASE_IDLE;
+    spi_dma_init();
     return BMI088_OK;
 }
 
@@ -248,26 +251,73 @@ static void pitch_solve_step(void)
 }
 
 /* ==================== DMA传输链 ==================== */
+// 停止SPI1的收发DMA流.
+static void spi_dma_stop(void)
+{
+    __HAL_DMA_DISABLE(hspi1.hdmarx);
+    __HAL_DMA_DISABLE(hspi1.hdmatx);
+
+    while (hspi1.hdmarx->Instance->CR & DMA_SxCR_EN)
+        __HAL_DMA_DISABLE(hspi1.hdmarx);
+    while (hspi1.hdmatx->Instance->CR & DMA_SxCR_EN)
+        __HAL_DMA_DISABLE(hspi1.hdmatx);
+}
+
+// 清除指定DMA流的全部传输状态标志.
+static void spi_dma_clear_flags(DMA_HandleTypeDef *hdma)
+{
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma));
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_HT_FLAG_INDEX(hdma));
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_TE_FLAG_INDEX(hdma));
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_DME_FLAG_INDEX(hdma));
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_FE_FLAG_INDEX(hdma));
+}
+
+// 初始化SPI1的直接DMA传输方式.
+static void spi_dma_init(void)
+{
+    spi_dma_stop();
+    spi_dma_clear_flags(hspi1.hdmarx);
+    spi_dma_clear_flags(hspi1.hdmatx);
+
+    SET_BIT(hspi1.Instance->CR2, SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
+    __HAL_SPI_DISABLE_IT(&hspi1, SPI_IT_TXE | SPI_IT_RXNE | SPI_IT_ERR);
+    __HAL_SPI_ENABLE(&hspi1);
+
+    __HAL_DMA_ENABLE_IT(hspi1.hdmarx, DMA_IT_TC | DMA_IT_TE | DMA_IT_DME);
+    __HAL_DMA_ENABLE_IT(hspi1.hdmarx, DMA_IT_FE);
+}
+
+// 按示例方式重装并启动一次SPI1收发DMA.
+static void spi_dma_start(uint8_t *tx_buf, uint8_t *rx_buf, uint16_t length)
+{
+    spi_dma_stop();
+    spi_dma_clear_flags(hspi1.hdmarx);
+    spi_dma_clear_flags(hspi1.hdmatx);
+
+    hspi1.hdmarx->Instance->M0AR = (uint32_t)rx_buf;
+    hspi1.hdmarx->Instance->PAR = (uint32_t)&hspi1.Instance->DR;
+    hspi1.hdmatx->Instance->M0AR = (uint32_t)tx_buf;
+    hspi1.hdmatx->Instance->PAR = (uint32_t)&hspi1.Instance->DR;
+    __HAL_DMA_SET_COUNTER(hspi1.hdmarx, length);
+    __HAL_DMA_SET_COUNTER(hspi1.hdmatx, length);
+
+    __HAL_DMA_ENABLE(hspi1.hdmarx);
+    __HAL_DMA_ENABLE(hspi1.hdmatx);
+}
+
 static void start_gyro_dma(void)
 {
     HAL_GPIO_WritePin(GYRO, GPIO_PIN_RESET);
     imu_phase = IMU_PHASE_GYRO;
-    if (HAL_SPI_TransmitReceive_DMA(&hspi1, gyro_tx, gyro_rx, 7) != HAL_OK)
-    {
-        HAL_GPIO_WritePin(GYRO, GPIO_PIN_SET);
-        imu_phase = IMU_PHASE_IDLE;
-    }
+    spi_dma_start(gyro_tx, gyro_rx, 7U);
 }
 
 static void start_accel_dma(void)
 {
     HAL_GPIO_WritePin(ACCEL, GPIO_PIN_RESET);
     imu_phase = IMU_PHASE_ACCEL;
-    if (HAL_SPI_TransmitReceive_DMA(&hspi1, accel_tx, accel_rx, 8) != HAL_OK)
-    {
-        HAL_GPIO_WritePin(ACCEL, GPIO_PIN_SET);
-        imu_phase = IMU_PHASE_IDLE;
-    }
+    spi_dma_start(accel_tx, accel_rx, 8U);
 }
 
 //把陀螺 rx[1..6] (小端16位×3) 转成 gx/gy/gz (rad/s)
@@ -309,10 +359,35 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     //INT1_ACCEL(PC4)在本设计中不启动独立链,accel由gyro链末尾串读
 }
 
-//SPI DMA传输完成: 分阶段推进状态机 -> Mahony -> yaw积分 -> Control_Proc
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+// 处理SPI1接收DMA完成或错误并推进Gyro到Accel采样链.
+uint8_t BMI088_DMA_IRQHandler(void)
 {
-    if (hspi->Instance != SPI1) return;
+    uint8_t dma_error;
+
+    dma_error = (__HAL_DMA_GET_FLAG(hspi1.hdmarx,
+                                    __HAL_DMA_GET_TE_FLAG_INDEX(hspi1.hdmarx)) != RESET) ||
+                (__HAL_DMA_GET_FLAG(hspi1.hdmarx,
+                                    __HAL_DMA_GET_DME_FLAG_INDEX(hspi1.hdmarx)) != RESET) ||
+                (__HAL_DMA_GET_FLAG(hspi1.hdmarx,
+                                    __HAL_DMA_GET_FE_FLAG_INDEX(hspi1.hdmarx)) != RESET);
+
+    if (dma_error)
+    {
+        spi_dma_stop();
+        spi_dma_clear_flags(hspi1.hdmarx);
+        spi_dma_clear_flags(hspi1.hdmatx);
+        HAL_GPIO_WritePin(GYRO, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(ACCEL, GPIO_PIN_SET);
+        imu_phase = IMU_PHASE_IDLE;
+        return 1U;
+    }
+
+    if (__HAL_DMA_GET_FLAG(hspi1.hdmarx,
+                           __HAL_DMA_GET_TC_FLAG_INDEX(hspi1.hdmarx)) == RESET)
+        return 1U;
+
+    __HAL_DMA_CLEAR_FLAG(hspi1.hdmarx,
+                         __HAL_DMA_GET_TC_FLAG_INDEX(hspi1.hdmarx));
 
     if (imu_phase == IMU_PHASE_GYRO)
     {
@@ -332,17 +407,8 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
         imu_phase = IMU_PHASE_IDLE;
         Control_RequestUpdateFromISR();
     }
-}
 
-// SPI或DMA异常后释放片选并允许下一次数据就绪中断重新采样.
-void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
-{
-    if (hspi->Instance != SPI1)
-        return;
-
-    HAL_GPIO_WritePin(GYRO, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(ACCEL, GPIO_PIN_SET);
-    imu_phase = IMU_PHASE_IDLE;
+    return 1U;
 }
 
 /* ==================== 只读getter ==================== */
@@ -362,3 +428,18 @@ uint8_t BMI088_YawIsReady(void) { return yaw_calibrated; }
 
 float BMI088_GetTemperature(void) { return temperature; }
 uint8_t BMI088_GetError(void)     { return bmi088_error; }
+
+// 返回BMI088 DMA采样链当前阶段.
+uint8_t BMI088_GetDMAPhase(void) { return (uint8_t)imu_phase; }
+
+// 返回SPI1当前HAL状态.
+uint32_t BMI088_GetSPIState(void) { return (uint32_t)hspi1.State; }
+
+// 返回SPI1当前HAL错误码.
+uint32_t BMI088_GetSPIError(void) { return hspi1.ErrorCode; }
+
+// 返回陀螺仪数据就绪引脚当前电平.
+uint8_t BMI088_GetGyroDRDYLevel(void)
+{
+    return (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_5) == GPIO_PIN_SET) ? 1U : 0U;
+}

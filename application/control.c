@@ -121,8 +121,8 @@ static void switch_feedback(uint8_t enable)
 void Control_Init(void)
 {
     /* Example gains converted from discrete 1 kHz PID to the dt-based PID. */
-    PID_Init(&pid_yaw, 1.2f, 0.0f, 0.0f);
-    PID_Init(&pid_pitch, 1.2f, 0.0f, 0.0f);
+    PID_Init(&pid_yaw, 3.3f, 0.1f, 0.2f);
+    PID_Init(&pid_pitch, 3.3f, 0.1f, 0.2f);
     PID_LimitConfig(&pid_yaw, W_MAX_RADPS, -W_MAX_RADPS);
     PID_LimitConfig(&pid_pitch, W_MAX_RADPS, -W_MAX_RADPS);
     PID_ChangeSP(&pid_yaw, 0.0f);
@@ -192,6 +192,14 @@ uint8_t Control_IsIMUOnline(void)
 {
     return last_imu_update_ms != 0U &&
            ((HAL_GetTick() - last_imu_update_ms) <= IMU_TIMEOUT_MS);
+}
+
+// 返回距离最近一次IMU数据更新经过的毫秒数.
+uint32_t Control_GetIMUAgeMs(void)
+{
+    if (last_imu_update_ms == 0U)
+        return 0xFFFFFFFFU;
+    return HAL_GetTick() - last_imu_update_ms;
 }
 
 // 对离线或未使能的电机重新发送使能命令.

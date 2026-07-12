@@ -11,6 +11,7 @@
 #define BMI088_GYRO_CONFIG_ERROR  0x04
 
 uint8_t BMI088_Init(void);
+uint8_t BMI088_DMA_IRQHandler(void);
 
 float BMI088_GetAx(void);
 float BMI088_GetAy(void);
@@ -27,6 +28,10 @@ uint8_t BMI088_YawIsReady(void);  //1:开机零偏标定完成
 
 float BMI088_GetTemperature(void);
 uint8_t BMI088_GetError(void);
+uint8_t BMI088_GetDMAPhase(void);
+uint32_t BMI088_GetSPIState(void);
+uint32_t BMI088_GetSPIError(void);
+uint8_t BMI088_GetGyroDRDYLevel(void);
 
 
 #endif
