@@ -6,125 +6,359 @@
 #include "can.h"
 #include <math.h>
 
-/* =====================================================================
- * 控制思路:绝对空间角单角度环
- *
- *   树莓派err ─►[累加器]─► θref ─►(θref − θ反馈)─►[平滑]─► 角度PID ─► Wref(rad/s)
- *                                       ▲                                  │
- *               θ反馈 = 加速度计+陀螺仪融合的绝对空间角                     │ rad/s→rpm
- *               (yaw:BMI088_GetYaw / pitch:BMI088_GetPitch)                ▼
- *                                                                  QD4310_SetSpeed
- *
- * 说明:
- *  - 累加器:树莓派(视觉)每帧发来角误差err,θref += err。视觉较慢,故只在收到
- *    有效帧时累加,两帧之间θref保持不变;高频的角度环用IMU绝对角持续跟踪θref。
- *    视觉丢失时同样不累加 → θref锁死,云台停在最后瞄准的世界方向。
- *  - MCU只做外层"角度环",输出目标角速度;内层"速度环"由QD4310内部闭环,
- *    故直接把角速度换算成rpm用QD4310_SetSpeed下发(不在MCU再做速度PID)。
- * =====================================================================*/
+/* 角度PID输出目标角速度,速度闭环由QD4310内部完成. */
+#define RADPS_TO_RPM (60.0f / QD4310_TWO_PI)
+#define YAW_MOTOR_DIR (+1.0f)
+#define PITCH_MOTOR_DIR (+1.0f)
+#define VISION_TIMEOUT_MS (100U)
+#define MOTOR_TIMEOUT_MS (50U)
+#define IMU_TIMEOUT_MS (10U)
+#define ERR_LP_ALPHA (0.3f)
+#define W_MAX_RADPS (100.0f)
+#define PITCH_MAX_RAD (0.5f)
 
-/* ---- 调参/硬件映射(上电标定时调整) ---- */
-#define RADPS_TO_RPM        (60.0f / QD4310_TWO_PI)  //云台rad/s->电机rpm换算
-#define YAW_MOTOR_DIR       (+1.0f)   //yaw电机转向反了改成-1.0f
-#define PITCH_MOTOR_DIR     (+1.0f)   //pitch电机转向反了改成-1.0f
-#define VISION_TIMEOUT_MS   (100U)    //视觉信号超时阈值,ms
-#define ERR_LP_ALPHA        (0.3f)    //角度误差平滑系数[0,1],=1则不平滑
-#define W_MAX_RADPS         (100.0f)  //角度环输出角速度限幅,rad/s(*9.55≈955rpm<1000)
-
-//角度环PID:输入=角度误差(rad),输出=云台角速度(rad/s)
 static PID_TypeDef pid_yaw;
 static PID_TypeDef pid_pitch;
-static QD4310_t gimbal_motor0; //yaw电机(水平转动)
-static QD4310_t gimbal_motor1; //pitch电机(俯仰转动)
+static QD4310_t gimbal_motor0;
+static QD4310_t gimbal_motor1;
 
-//累加器输出的目标角(绝对空间角,rad,连续不wrap),视觉丢失时保持不变
 static float yaw_ref;
 static float pitch_ref;
-//平滑处理后的角度误差(rad)
 static float yaw_err_lp;
 static float pitch_err_lp;
-static uint8_t ref_inited = 0;   //0:目标角还没用当前反馈初始化过
 
-//把角度归一化到[-pi,pi]
-static float wrap_pi(float a)
+static float pitch_imu_zero;
+static float pitch_motor_zero;
+
+static uint32_t last_vision_time_ms;
+static uint8_t vision_frame_seen;
+static uint8_t control_initialized;
+static uint8_t ref_initialized;
+static uint8_t attitude_reset;
+static uint8_t stability_enabled;
+static uint8_t control_started;
+static volatile uint8_t control_update_pending;
+static volatile uint32_t last_imu_update_ms;
+
+// 将角度限制到[-pi, pi].
+static float wrap_pi(float angle)
 {
-    while (a >  QD4310_PI) a -= QD4310_TWO_PI;
-    while (a < -QD4310_PI) a += QD4310_TWO_PI;
-    return a;
+    while (angle > QD4310_PI)
+        angle -= QD4310_TWO_PI;
+    while (angle < -QD4310_PI)
+        angle += QD4310_TWO_PI;
+    return angle;
 }
 
+// 读取Yaw和Pitch电机编码器角度.
+static void get_motor_angle(float *yaw, float *pitch)
+{
+    *yaw = QD4310_GetYawAngle();
+    *pitch = QD4310_GetPitchAngle();
+}
+
+// 计算开启自稳时使用的惯性空间角度.
+static void get_stability_angle(float *yaw, float *pitch)
+{
+    float motor_pitch = QD4310_GetPitchAngle();
+
+    *yaw = BMI088_GetYaw();
+    *pitch = (BMI088_GetPitch() - pitch_imu_zero) +
+             wrap_pi(motor_pitch - pitch_motor_zero);
+}
+
+// 根据自稳状态选择当前角度反馈.
+static void get_feedback_angle(float *yaw, float *pitch)
+{
+    if (stability_enabled)
+        get_stability_angle(yaw, pitch);
+    else
+        get_motor_angle(yaw, pitch);
+}
+
+// 切换角度反馈来源并保持切换前后的控制误差不变.
+static void switch_feedback(uint8_t enable)
+{
+    float old_yaw;
+    float old_pitch;
+    float new_yaw;
+    float new_pitch;
+
+    get_feedback_angle(&old_yaw, &old_pitch);
+    stability_enabled = enable;
+    get_feedback_angle(&new_yaw, &new_pitch);
+
+    if (ref_initialized)
+    {
+        yaw_ref += new_yaw - old_yaw;
+        pitch_ref += new_pitch - old_pitch;
+    }
+    else
+    {
+        yaw_ref = new_yaw;
+        pitch_ref = new_pitch;
+        ref_initialized = 1;
+    }
+}
+
+// 初始化PID、电机和控制状态.
 void Control_Init(void)
 {
-    PID_Init(&pid_yaw, 0.5f, 0.1f, 0.05f);
-    PID_Init(&pid_pitch, 0.5f, 0.1f, 0.05f);
-
-    //输出是角速度(rad/s),限幅保证换算成rpm后不超QD4310量程
+    /* Example gains converted from discrete 1 kHz PID to the dt-based PID. */
+    PID_Init(&pid_yaw, 5.0f, 100.0f, 0.11f);
+    PID_Init(&pid_pitch, 4.6f, 170.0f, 0.03f);
     PID_LimitConfig(&pid_yaw, W_MAX_RADPS, -W_MAX_RADPS);
     PID_LimitConfig(&pid_pitch, W_MAX_RADPS, -W_MAX_RADPS);
+    PID_ChangeSP(&pid_yaw, 0.0f);
+    PID_ChangeSP(&pid_pitch, 0.0f);
 
-    //云台电机在CAN1上,id分别为0(yaw)和1(pitch)
-    gimbal_motor0.id   = 0;
+    gimbal_motor0.id = 0;
     gimbal_motor0.hcan = &hcan1;
-    gimbal_motor1.id   = 1;
+    gimbal_motor1.id = 1;
     gimbal_motor1.hcan = &hcan1;
 
+    QD4310_FeedbackInit();
     QD4310_Enable(&gimbal_motor0);
     QD4310_Enable(&gimbal_motor1);
 
-    ref_inited = 0;
+    yaw_ref = 0.0f;
+    pitch_ref = 0.0f;
+    yaw_err_lp = 0.0f;
+    pitch_err_lp = 0.0f;
+    pitch_imu_zero = 0.0f;
+    pitch_motor_zero = 0.0f;
+    last_vision_time_ms = 0U;
+    vision_frame_seen = 0U;
+    ref_initialized = 0U;
+    attitude_reset = 0U;
+    stability_enabled = 0U;
+    control_started = 0U;
+    control_update_pending = 0U;
+    last_imu_update_ms = 0U;
+    control_initialized = 1U;
 }
 
+// 由IMU中断通知主循环执行一次控制更新.
+void Control_RequestUpdateFromISR(void)
+{
+    control_update_pending = 1U;
+    last_imu_update_ms = HAL_GetTick();
+}
+
+// 在主循环中处理一次待执行的控制周期.
+void Control_Task(void)
+{
+    uint32_t primask;
+
+    if (!control_update_pending)
+        return;
+
+    primask = __get_PRIMASK();
+    __disable_irq();
+    control_update_pending = 0U;
+    if (!primask)
+        __enable_irq();
+
+    Control_Proc();
+}
+
+// 判断两轴电机反馈是否在线且电机已经使能.
+uint8_t Control_AreMotorsReady(void)
+{
+    return QD4310_IsYawOnline(MOTOR_TIMEOUT_MS) &&
+           QD4310_IsPitchOnline(MOTOR_TIMEOUT_MS) &&
+           QD4310_IsYawEnabled() && QD4310_IsPitchEnabled();
+}
+
+// 判断IMU数据是否仍在持续更新.
+uint8_t Control_IsIMUOnline(void)
+{
+    return last_imu_update_ms != 0U &&
+           ((HAL_GetTick() - last_imu_update_ms) <= IMU_TIMEOUT_MS);
+}
+
+// 对离线或未使能的电机重新发送使能命令.
+void Control_RetryMotorEnable(void)
+{
+    if (!QD4310_IsYawOnline(MOTOR_TIMEOUT_MS) || !QD4310_IsYawEnabled())
+        QD4310_Enable(&gimbal_motor0);
+    if (!QD4310_IsPitchOnline(MOTOR_TIMEOUT_MS) || !QD4310_IsPitchEnabled())
+        QD4310_Enable(&gimbal_motor1);
+}
+
+// 重置Yaw并记录Pitch姿态与编码器零点.
+uint8_t Control_ResetAttitude(void)
+{
+    float old_yaw;
+    float old_pitch;
+    float new_yaw;
+    float new_pitch;
+
+    if (!control_initialized || !BMI088_YawIsReady())
+        return 0U;
+
+    get_feedback_angle(&old_yaw, &old_pitch);
+    BMI088_YawReset();
+    pitch_imu_zero = BMI088_GetPitch();
+    pitch_motor_zero = QD4310_GetPitchAngle();
+    attitude_reset = 1U;
+    get_feedback_angle(&new_yaw, &new_pitch);
+
+    if (stability_enabled && ref_initialized)
+    {
+        yaw_ref += new_yaw - old_yaw;
+        pitch_ref += new_pitch - old_pitch;
+    }
+
+    return 1U;
+}
+
+// 开启IMU惯性空间角度反馈.
+uint8_t Control_EnableStability(void)
+{
+    if (!control_initialized || !attitude_reset || !BMI088_YawIsReady())
+        return 0U;
+    if (!stability_enabled)
+        switch_feedback(1U);
+    return 1U;
+}
+
+// 关闭自稳并切换回电机编码器反馈.
+void Control_DisableStability(void)
+{
+    if (control_initialized && stability_enabled)
+        switch_feedback(0U);
+}
+
+// 返回当前是否已经开启自稳.
+uint8_t Control_IsStabilityEnabled(void)
+{
+    return stability_enabled;
+}
+
+// 对齐当前目标角并启动云台控制.
+uint8_t Control_Start(void)
+{
+    float yaw_fb;
+    float pitch_fb;
+
+    if (!control_initialized || !attitude_reset || !Control_AreMotorsReady())
+        return 0U;
+
+    get_feedback_angle(&yaw_fb, &pitch_fb);
+    yaw_ref = yaw_fb;
+    pitch_ref = pitch_fb;
+    yaw_err_lp = 0.0f;
+    pitch_err_lp = 0.0f;
+    PID_Reset(&pid_yaw);
+    PID_Reset(&pid_pitch);
+    ref_initialized = 1U;
+    control_started = 1U;
+    return 1U;
+}
+
+// 停止云台控制并将两轴目标速度清零.
+void Control_Stop(void)
+{
+    if (!control_initialized)
+        return;
+
+    control_started = 0U;
+    SetGimbal0Speed(0.0f);
+    SetGimbal1Speed(0.0f);
+    PID_Reset(&pid_yaw);
+    PID_Reset(&pid_pitch);
+    yaw_err_lp = 0.0f;
+    pitch_err_lp = 0.0f;
+}
+
+// 返回云台控制是否处于运行状态.
+uint8_t Control_IsStarted(void)
+{
+    return control_started;
+}
+
+// 完成一次视觉目标更新、角度PID计算和电机速度下发.
 void Control_Proc(void)
 {
-    //(1) 反馈:加速度计+陀螺仪融合出的绝对空间角
-    float yaw_fb   = BMI088_GetYaw();     //连续世界yaw,rad
-    float pitch_fb = BMI088_GetPitch();   //绝对pitch,rad
+    float yaw_fb;
+    float pitch_fb;
+    float yaw_error;
+    float pitch_error;
+    float yaw_e;
+    float pitch_e;
+    float w_yaw;
+    float w_pitch;
+    const VisionErr_t *vision;
 
-    //开机第一帧:累加器对齐当前反馈,避免上电瞬间猛甩
-    if (!ref_inited)
+    if (!control_initialized || !control_started)
+        return;
+
+    if (!Control_AreMotorsReady() || !Control_IsIMUOnline())
     {
-        yaw_ref   = yaw_fb;
+        Control_Stop();
+        return;
+    }
+
+    get_feedback_angle(&yaw_fb, &pitch_fb);
+    if (!ref_initialized)
+    {
+        yaw_ref = yaw_fb;
         pitch_ref = pitch_fb;
-        yaw_err_lp   = 0.0f;
+        yaw_err_lp = 0.0f;
         pitch_err_lp = 0.0f;
-        ref_inited = 1;
+        ref_initialized = 1U;
     }
 
-    //(2) 累加器:视觉有效时把树莓派发来的角误差累加进目标角;
-    //    丢失/无新帧则不累加 → θref保持,云台锁住当前朝向
-    const VisionErr_t *v = Vision_GetErr();
-    uint8_t vision_ok = (v->valid && Vision_IsOnline(VISION_TIMEOUT_MS));
-
-    if (vision_ok)
+    vision = Vision_GetErr();
+    if (vision->valid && Vision_IsOnline(VISION_TIMEOUT_MS) &&
+        (!vision_frame_seen || vision->rx_time_ms != last_vision_time_ms))
     {
-        yaw_ref   += v->yaw_err_rad;
-        pitch_ref += v->pitch_err_rad;
+        float target_x = VISION_LASER_X + (float)vision->ex_px;
+        float target_y = VISION_LASER_Y + (float)vision->ey_px;
+
+        yaw_error = atan2f(target_x - VISION_CX, VISION_FX) -
+                    atan2f(VISION_LASER_X - VISION_CX, VISION_FX);
+        pitch_error = -(atan2f(target_y - VISION_CY, VISION_FY) -
+                        atan2f(VISION_LASER_Y - VISION_CY, VISION_FY));
+
+        yaw_ref = yaw_fb + yaw_error;
+        pitch_ref = pitch_fb + pitch_error;
+        last_vision_time_ms = vision->rx_time_ms;
+        vision_frame_seen = 1U;
     }
 
-    //(3) 角度误差 = θref − θ反馈,连续角先wrap到[-pi,pi]再平滑处理
-    float yaw_e   = wrap_pi(yaw_ref   - yaw_fb);
-    float pitch_e = wrap_pi(pitch_ref - pitch_fb);
-    yaw_err_lp   += ERR_LP_ALPHA * (yaw_e   - yaw_err_lp);
+    yaw_e = wrap_pi(yaw_ref - yaw_fb);
+    pitch_e = wrap_pi(pitch_ref - pitch_fb);
+    yaw_err_lp += ERR_LP_ALPHA * (yaw_e - yaw_err_lp);
     pitch_err_lp += ERR_LP_ALPHA * (pitch_e - pitch_err_lp);
 
-    //(4) 角度环PID:传SP=0、FB=-err,等价于内部err=角度误差(误差正→输出角速度正)
-    PID_ChangeSP(&pid_yaw, 0.0f);
-    PID_ChangeSP(&pid_pitch, 0.0f);
-    float w_yaw   = PID_Compute(&pid_yaw,   -yaw_err_lp);     //rad/s
-    float w_pitch = PID_Compute(&pid_pitch, -pitch_err_lp);   //rad/s
+    w_yaw = PID_Compute(&pid_yaw, -yaw_err_lp);
+    w_pitch = PID_Compute(&pid_pitch, -pitch_err_lp);
 
-    //(5) 角速度(rad/s) → 电机rpm,应用方向系数,下发(速度环在QD4310内部)
-    SetGimbal0Speed(w_yaw   * RADPS_TO_RPM * YAW_MOTOR_DIR);
+    {
+        float pitch_from_zero = wrap_pi(QD4310_GetPitchAngle() - pitch_motor_zero);
+        if ((w_pitch > 0.0f && pitch_from_zero >= PITCH_MAX_RAD) ||
+            (w_pitch < 0.0f && pitch_from_zero <= -PITCH_MAX_RAD))
+        {
+            pitch_ref = pitch_fb;
+            pitch_err_lp = 0.0f;
+            PID_Reset(&pid_pitch);
+            w_pitch = 0.0f;
+        }
+    }
+
+    SetGimbal0Speed(w_yaw * RADPS_TO_RPM * YAW_MOTOR_DIR);
     SetGimbal1Speed(w_pitch * RADPS_TO_RPM * PITCH_MOTOR_DIR);
 }
 
-//电机0: 云台yaw轴目标转速(rpm)
+// 设置Yaw电机目标速度.
 void SetGimbal0Speed(float speed_rpm)
 {
     QD4310_SetSpeed(&gimbal_motor0, speed_rpm);
 }
 
-//电机1: 云台pitch轴目标转速(rpm)
+// 设置Pitch电机目标速度.
 void SetGimbal1Speed(float speed_rpm)
 {
     QD4310_SetSpeed(&gimbal_motor1, speed_rpm);

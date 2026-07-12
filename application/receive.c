@@ -1,4 +1,4 @@
-﻿// 本文件处理视觉模块发来的数据:
+// 本文件处理视觉模块发来的数据:
 // 帧格式为 "$valid,ex,ey\n", 例如 "$1,-45,30\n".
 // valid 表示靶纸是否有效, ex/ey 是图像平面上的像素偏差.
 //
@@ -12,11 +12,10 @@
 /* -------------------- 内部常量和缓冲区 -------------------- */
 
 // "$1,-320,-180\n" 约 14 字节, 64 字节作为安全缓冲.
-#define VISION_RX_BUF_SIZE   64
+#define VISION_RX_BUF_SIZE 64
 
 static uint8_t s_rx_buf[VISION_RX_BUF_SIZE];
 static VisionErr_t s_vision;
-
 
 /* -------------------- 内部函数 -------------------- */
 
@@ -70,15 +69,20 @@ static int parse_frame(const uint8_t *buf, uint16_t len)
     }
     i++;
 
-    if (parse_int(buf, len, &i, &valid) != 0) return -1;
-    if (i >= len || buf[i] != ',') return -1;
+    if (parse_int(buf, len, &i, &valid) != 0)
+        return -1;
+    if (i >= len || buf[i] != ',')
+        return -1;
     i++;
 
-    if (parse_int(buf, len, &i, &ex) != 0) return -1;
-    if (i >= len || buf[i] != ',') return -1;
+    if (parse_int(buf, len, &i, &ex) != 0)
+        return -1;
+    if (i >= len || buf[i] != ',')
+        return -1;
     i++;
 
-    if (parse_int(buf, len, &i, &ey) != 0) return -1;
+    if (parse_int(buf, len, &i, &ey) != 0)
+        return -1;
 
     s_vision.valid = (valid != 0) ? 1 : 0;
     s_vision.ex_px = (int16_t)ex;
@@ -86,24 +90,29 @@ static int parse_frame(const uint8_t *buf, uint16_t len)
 
     if (s_vision.valid)
     {
-        // ex 为正表示目标在图像右侧, 云台 yaw 应向右修正.
-        s_vision.yaw_err_rad = qatan2((float)ex, VISION_FX);
+        float target_x = VISION_LASER_X + (float)ex;
+        float target_y = VISION_LASER_Y + (float)ey;
 
-        // ey 为正表示目标在图像下侧, 取反后让向上为正.
-        s_vision.pitch_err_rad = qatan2((float)(-ey), VISION_FY);
+        s_vision.yaw_err_rad = qatan2(target_x - VISION_CX, VISION_FX) -
+                                   qatan2(VISION_LASER_X - VISION_CX, VISION_FX);
+        s_vision.pitch_err_rad = -(qatan2(target_y - VISION_CY, VISION_FY) -
+                                     qatan2(VISION_LASER_Y - VISION_CY, VISION_FY));
+    }
+    else
+    {
+        s_vision.yaw_err_rad = 0.0f;
+        s_vision.pitch_err_rad = 0.0f;
     }
 
     s_vision.rx_time_ms = HAL_GetTick();
     return 0;
 }
 
-
 static void vision_start_dma(void)
 {
     HAL_UARTEx_ReceiveToIdle_DMA(&huart6, s_rx_buf, VISION_RX_BUF_SIZE);
     __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT);
 }
-
 
 /* -------------------- 公开接口 -------------------- */
 
@@ -129,7 +138,6 @@ uint8_t Vision_IsOnline(uint32_t timeout_ms)
     return ((HAL_GetTick() - s_vision.rx_time_ms) <= timeout_ms) ? 1 : 0;
 }
 
-
 /* -------------------- HAL 中断回调 -------------------- */
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
@@ -137,6 +145,16 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     if (huart->Instance == USART6)
     {
         parse_frame(s_rx_buf, Size);
+        vision_start_dma();
+    }
+}
+
+// USART6接收异常后重新启动视觉DMA接收.
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART6)
+    {
+        __HAL_UNLOCK(huart);
         vision_start_dma();
     }
 }

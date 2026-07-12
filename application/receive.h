@@ -1,35 +1,33 @@
-﻿#ifndef RECEIVE_H
+#ifndef RECEIVE_H
 #define RECEIVE_H
 
 #include <stdint.h>
 
 /*
- * 视觉参数
- * 图像分辨率: 640 x 360, 16:9
- * 相机 FOV: 对角约 90 度
- * 估算: HFOV 约 82.15 度, VFOV 约 52.23 度
- * fx = fy 约 367.15 px
+ * 树莓派发送 ex=target_x-223, ey=target_y-221.
+ * 以下参数来自640x480相机标定;当前按约定忽略畸变.
  */
-#define VISION_IMG_W        640.0f
-#define VISION_IMG_H        360.0f
-#define VISION_CX           320.0f
-#define VISION_CY           180.0f
-#define VISION_FX           367.15f
-#define VISION_FY           367.15f
+#define VISION_IMG_W 640.0f
+#define VISION_IMG_H 480.0f
+#define VISION_CX 298.1835178f
+#define VISION_CY 230.6594528f
+#define VISION_FX 776.9054244f
+#define VISION_FY 582.5955349f
+#define VISION_LASER_X 223.0f
+#define VISION_LASER_Y 221.0f
 
 typedef struct
 {
-    uint8_t valid;          // 1: 靶纸有效, 0: 未识别到靶纸
+    uint8_t valid; // 1: 靶纸有效, 0: 未识别到靶纸
 
-    int16_t ex_px;          // 水平方向像素偏差, 右为正
-    int16_t ey_px;          // 垂直方向像素偏差, 下为正
+    int16_t ex_px; // 水平方向像素偏差, 右为正
+    int16_t ey_px; // 垂直方向像素偏差, 下为正
 
-    float yaw_err_rad;      // yaw 方向角度误差, 单位 rad
-    float pitch_err_rad;    // pitch 方向角度误差, 单位 rad
+    float yaw_err_rad;   // yaw 方向角度误差, 单位 rad
+    float pitch_err_rad; // pitch 方向角度误差, 单位 rad
 
-    uint32_t rx_time_ms;    // 最后一帧有效视觉数据的接收时间戳
+    uint32_t rx_time_ms; // 最后一帧合法报文的接收时间戳
 } VisionErr_t;
-
 
 /* ==================== 视觉接收接口 ==================== */
 

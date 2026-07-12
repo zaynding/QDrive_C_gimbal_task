@@ -1,13 +1,12 @@
 /*
  * qmath.h
  *
- *  Created on: 2025Äê5ÔÂ7ÈÕ
+ *  Created on: 2025å¹´5æœˆ7æ—¥
  *      Author: gaoxi
  */
 
 #ifndef INC_QMATH_H_
 #define INC_QMATH_H_
-
 
 #include "main.h"
 #include <math.h>
@@ -19,6 +18,5 @@ float qasin(float x);
 float qacos(float x);
 float qatan(float x);
 float qatan2(float y, float x);
-
 
 #endif /* INC_QMATH_H_ */

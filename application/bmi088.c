@@ -317,12 +317,12 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
         HAL_GPIO_WritePin(ACCEL, GPIO_PIN_SET);
         parse_accel();
 
-        //一轮采样齐了 -> 姿态融合 -> 控制器
+        //一轮采样齐了 -> 姿态融合 -> 通知裸机控制任务
         yaw_solve_step();
         pitch_solve_step();
 
         imu_phase = IMU_PHASE_IDLE;
-        Control_Proc();      //1kHz内环:角度PID + 平滑 + SetSpeed
+        Control_RequestUpdateFromISR();
     }
 }
 

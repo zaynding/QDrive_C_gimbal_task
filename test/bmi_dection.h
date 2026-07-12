@@ -4,5 +4,4 @@
 void USART1_Proc(void);
 void UART1_Proc(void);
 
-
 #endif

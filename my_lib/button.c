@@ -1,29 +1,29 @@
 /**
-  ******************************************************************************
-  * @file    button.c
-  * @author  ÌúÍ·É½Ñò
-  * @version V 1.0.0
-  * @date    2022Äê9ÔÂ7ÈÕ
-  * @brief   °´Å¥Çý¶¯³ÌÐò
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    button.c
+ * @author  é“å¤´å±±ç¾Š
+ * @version V 1.0.0
+ * @date    2022å¹´9æœˆ7æ—¥
+ * @brief   æŒ‰é’®é©±åŠ¨ç¨‹åº
+ ******************************************************************************
+ */
 
 #include "button.h"
 #include "delay.h"
 
-#define BUTTON_SETTLING_TIME             10   // °´Å¥Ïû¶¶ÑÓ³Ù
-#define BUTTON_CLICK_INTERVAL            200  // °´Å¥¶à»÷Ê±Ã¿´Îµã»÷µÄÊ±¼ä×î´óÊ±¼ä¼ä¸ô
-#define BUTTON_LONG_PRESS_THRESHOLD      1000 // °´Å¥³¤°´×îÐ¡Ê±¼ä
-#define BUTTON_LONG_PRESS_TICK_INTERNVAL 100  // ³¤°´ºó³ÖÐø´¥·¢µÄÊ±¼ä¼ä¸ô
+#define BUTTON_SETTLING_TIME 10				 // æŒ‰é’®æ¶ˆæŠ–å»¶è¿Ÿ
+#define BUTTON_CLICK_INTERVAL 200			 // æŒ‰é’®å¤šå‡»æ—¶æ¯æ¬¡ç‚¹å‡»çš„æ—¶é—´æœ€å¤§æ—¶é—´é—´éš”
+#define BUTTON_LONG_PRESS_THRESHOLD 1000	 // æŒ‰é’®é•¿æŒ‰æœ€å°æ—¶é—´
+#define BUTTON_LONG_PRESS_TICK_INTERNVAL 100 // é•¿æŒ‰åŽæŒç»­è§¦å‘çš„æ—¶é—´é—´éš”
 
 static void OnButtonPressed(Button_TypeDef *Button);
 static void OnButtonReleased(Button_TypeDef *Button);
 static void OnButtonEveryPolled(Button_TypeDef *Button, uint8_t State, uint32_t currentTime);
 
 //
-// @¼ò½é£ºÓÃÓÚ³õÊ¼»¯°´Å¥µÄÇý¶¯
-// @²ÎÊý£ºButton - °´Å¥µÄÃû³Æ
-// @·µ»ØÖµ£ºÎÞ
+// @ç®€ä»‹ï¼šç”¨äºŽåˆå§‹åŒ–æŒ‰é’®çš„é©±åŠ¨
+// @å‚æ•°ï¼šButton - æŒ‰é’®çš„åç§°
+// @è¿”å›žå€¼ï¼šæ— 
 //
 void My_Button_Init(Button_TypeDef *Button, Button_InitTypeDef *Button_InistStruct)
 {
@@ -37,22 +37,22 @@ void My_Button_Init(Button_TypeDef *Button, Button_InitTypeDef *Button_InistStru
 	Button->ClickInterval = BUTTON_CLICK_INTERVAL;
 	Button->LongPressTickInterval = BUTTON_LONG_PRESS_TICK_INTERNVAL;
 
-	if(Button->LongPressThreshold == 0)
+	if (Button->LongPressThreshold == 0)
 	{
 		Button->LongPressThreshold = BUTTON_LONG_PRESS_THRESHOLD;
 	}
 
-	if(Button->LongPressTickInterval == 0)
+	if (Button->LongPressTickInterval == 0)
 	{
 		Button->LongPressTickInterval = BUTTON_LONG_PRESS_TICK_INTERNVAL;
 	}
 
-	if(Button->ClickInterval == 0)
+	if (Button->ClickInterval == 0)
 	{
 		Button->ClickInterval = BUTTON_CLICK_INTERVAL;
 	}
 
-	Button->LastState = 0; // ³õÊ¼×´Ì¬ÏÂ¼ÙÉè°´Å¥ÊÇËÉ¿ªµÄ
+	Button->LastState = 0; // åˆå§‹çŠ¶æ€ä¸‹å‡è®¾æŒ‰é’®æ˜¯æ¾å¼€çš„
 	Button->ChangePending = 0;
 	Button->PendingTime = 0;
 	Button->LastPressedTime = 0;
@@ -62,29 +62,29 @@ void My_Button_Init(Button_TypeDef *Button, Button_InitTypeDef *Button_InistStru
 }
 
 //
-// @¼ò½é£º°´Å¥µÄ½ø³Ìº¯Êý
-// @²ÎÊý£ºButton - °´Å¥µÄÃû³Æ
-// @×¢Òâ£º¸Ã·½·¨ÐèÒªÔÚmainº¯ÊýµÄwhileÑ­»·ÖÐµ÷ÓÃ
+// @ç®€ä»‹ï¼šæŒ‰é’®çš„è¿›ç¨‹å‡½æ•°
+// @å‚æ•°ï¼šButton - æŒ‰é’®çš„åç§°
+// @æ³¨æ„ï¼šè¯¥æ–¹æ³•éœ€è¦åœ¨mainå‡½æ•°çš„whileå¾ªçŽ¯ä¸­è°ƒç”¨
 //
 void My_Button_Proc(Button_TypeDef *Button)
 {
 	uint8_t currentState;
 
-	uint32_t currentTime = GetTick(); // »ñÈ¡µ±Ç°Ê±¼ä
+	uint32_t currentTime = GetTick(); // èŽ·å–å½“å‰æ—¶é—´
 
-	// °´¼üÏû¶¶
-	if(Button->ChangePending)
+	// æŒ‰é”®æ¶ˆæŠ–
+	if (Button->ChangePending)
 	{
-		if (currentTime >= Button->PendingTime + BUTTON_SETTLING_TIME) // ÒÑ¶É¹ý°´Å¥¶¶¶¯Ê±¼ä
+		if (currentTime >= Button->PendingTime + BUTTON_SETTLING_TIME) // å·²æ¸¡è¿‡æŒ‰é’®æŠ–åŠ¨æ—¶é—´
 		{
 			currentState = HAL_GPIO_ReadPin(Button->GPIOx, Button->GPIO_Pin) == GPIO_PIN_RESET ? 1 : 0;
 
-			if(currentState != Button->LastState)
+			if (currentState != Button->LastState)
 			{
-				if(currentState == 1)
-					OnButtonPressed(Button); // #1. °´Å¥°´ÏÂ
+				if (currentState == 1)
+					OnButtonPressed(Button); // #1. æŒ‰é’®æŒ‰ä¸‹
 				else
-					OnButtonReleased(Button); // #2. °´Å¥ËÉ¿ª
+					OnButtonReleased(Button); // #2. æŒ‰é’®æ¾å¼€
 			}
 			Button->LastState = currentState;
 			Button->ChangePending = 0;
@@ -94,20 +94,20 @@ void My_Button_Proc(Button_TypeDef *Button)
 	{
 		currentState = HAL_GPIO_ReadPin(Button->GPIOx, Button->GPIO_Pin) == GPIO_PIN_RESET ? 1 : 0;
 
-		if(currentState != Button->LastState)
+		if (currentState != Button->LastState)
 		{
 			Button->PendingTime = currentTime;
 			Button->ChangePending = 1;
 		}
 	}
 
-	OnButtonEveryPolled(Button, Button->LastState, currentTime); // #3. °´Å¥×´Ì¬±»¼ì²â
+	OnButtonEveryPolled(Button, Button->LastState, currentTime); // #3. æŒ‰é’®çŠ¶æ€è¢«æ£€æµ‹
 }
 
 //
-// @¼ò½é£º·µ»Ø°´Å¥µÄµ±Ç°×´Ì¬
+// @ç®€ä»‹ï¼šè¿”å›žæŒ‰é’®çš„å½“å‰çŠ¶æ€
 //
-// @·µ»ØÖµ£º0 - °´Å¥ËÉ¿ª  1 - °´Å¥°´ÏÂ
+// @è¿”å›žå€¼ï¼š0 - æŒ‰é’®æ¾å¼€  1 - æŒ‰é’®æŒ‰ä¸‹
 //
 uint8_t MyButton_GetState(Button_TypeDef *Button)
 {
@@ -115,8 +115,8 @@ uint8_t MyButton_GetState(Button_TypeDef *Button)
 }
 
 //
-// @¼ò½é£ºÉèÖÃ°´Å¥µÄµ¥»÷¼ä¸ô£¬¶ÌÓÚ´Ë¼ä¸ôÊÓÎªÁ¬»÷
-// @²ÎÊý£ºInterval - µ¥»÷¼ä¸ô£¨µ¥Î»ºÁÃë£©
+// @ç®€ä»‹ï¼šè®¾ç½®æŒ‰é’®çš„å•å‡»é—´éš”ï¼ŒçŸ­äºŽæ­¤é—´éš”è§†ä¸ºè¿žå‡»
+// @å‚æ•°ï¼šInterval - å•å‡»é—´éš”ï¼ˆå•ä½æ¯«ç§’ï¼‰
 //
 void My_Button_ClickIntervalConfig(Button_TypeDef *Button, uint32_t Interval)
 {
@@ -128,7 +128,6 @@ void My_Button_LongPressConfig(Button_TypeDef *Button, uint32_t Throshold, uint3
 	Button->LongPressThreshold = Throshold;
 	Button->LongPressTickInterval = TickInterval;
 }
-
 
 void My_Button_SetLongPressCb(Button_TypeDef *Button, void (*LongPressCb)(uint8_t ticks))
 {
@@ -151,36 +150,36 @@ void My_Button_SetClickCb(Button_TypeDef *Button, void (*ClickCb)(uint8_t clicks
 }
 
 //
-// @¼ò½é£º´¦Àí°´Å¥°´ÏÂµÄ¶¯×÷
+// @ç®€ä»‹ï¼šå¤„ç†æŒ‰é’®æŒ‰ä¸‹çš„åŠ¨ä½œ
 //
 static void OnButtonPressed(Button_TypeDef *Button)
 {
 	Button->LastPressedTime = GetTick();
 
-	// µ÷ÓÃ°´Å¥°´ÏÂµÄ»Øµ÷º¯Êý
-	if(Button->button_pressed_cb != 0)
+	// è°ƒç”¨æŒ‰é’®æŒ‰ä¸‹çš„å›žè°ƒå‡½æ•°
+	if (Button->button_pressed_cb != 0)
 	{
 		Button->button_pressed_cb();
 	}
 }
 
 //
-// @¼ò½é£º´¦Àí°´Å¥ËÉ¿ªµÄ¶¯×÷
+// @ç®€ä»‹ï¼šå¤„ç†æŒ‰é’®æ¾å¼€çš„åŠ¨ä½œ
 //
 static void OnButtonReleased(Button_TypeDef *Button)
 {
 	Button->LastReleasedTime = GetTick();
 
-	// µ÷ÓÃ°´Å¥ËÉ¿ªµÄ»Øµ÷º¯Êý
-	if(Button->button_released_cb != 0)
+	// è°ƒç”¨æŒ‰é’®æ¾å¼€çš„å›žè°ƒå‡½æ•°
+	if (Button->button_released_cb != 0)
 	{
 		Button->button_released_cb();
 	}
 
-	// ËÉ¿ªºó³¤°´¼ÆÊýÇåÁã
+	// æ¾å¼€åŽé•¿æŒ‰è®¡æ•°æ¸…é›¶
 	Button->LongPressTicks = 0;
 
-	if(Button->LastReleasedTime - Button->LastPressedTime < Button->LongPressThreshold)
+	if (Button->LastReleasedTime - Button->LastPressedTime < Button->LongPressThreshold)
 	{
 		Button->ClickCnt++;
 	}
@@ -191,24 +190,23 @@ static void OnButtonReleased(Button_TypeDef *Button)
 }
 
 //
-// @¼ò½é£º´¦ÀíÃ¿Ò»´Î°´Å¥ÂÖÑ¯µÄ¶¯×÷
+// @ç®€ä»‹ï¼šå¤„ç†æ¯ä¸€æ¬¡æŒ‰é’®è½®è¯¢çš„åŠ¨ä½œ
 //
 static void OnButtonEveryPolled(Button_TypeDef *Button, uint8_t State, uint32_t CurrentTime)
 {
-	/* ´¦Àí°´Å¥³¤°´µÄ¶¯×÷ */
+	/* å¤„ç†æŒ‰é’®é•¿æŒ‰çš„åŠ¨ä½œ */
 
-	if(Button->LastState == 1)
+	if (Button->LastState == 1)
 	{
-		if(Button->LongPressTicks == 0) // Èç¹û³¤°´Î´±»´¥·¢
+		if (Button->LongPressTicks == 0) // å¦‚æžœé•¿æŒ‰æœªè¢«è§¦å‘
 		{
-			if(Button->LastPressedTime!= 0
-				&& CurrentTime - Button->LastPressedTime > Button->LongPressThreshold) // ÇÒÒÑ³¬¹ý´¥·¢Ê±¼ä
+			if (Button->LastPressedTime != 0 && CurrentTime - Button->LastPressedTime > Button->LongPressThreshold) // ä¸”å·²è¶…è¿‡è§¦å‘æ—¶é—´
 			{
 				Button->LongPressTicks = 1;
 
-				if(Button->button_long_pressed_cb)
+				if (Button->button_long_pressed_cb)
 				{
-					Button->button_long_pressed_cb(Button->LongPressTicks); // ´¥·¢³¤°´»Øµ÷º¯Êý
+					Button->button_long_pressed_cb(Button->LongPressTicks); // è§¦å‘é•¿æŒ‰å›žè°ƒå‡½æ•°
 				}
 
 				Button->LastLongPressTickTime = GetTick();
@@ -216,29 +214,29 @@ static void OnButtonEveryPolled(Button_TypeDef *Button, uint8_t State, uint32_t 
 		}
 		else
 		{
-			if(CurrentTime - Button->LastLongPressTickTime > Button->LongPressTickInterval) // ³¬¹ýTick¼ä¸ô
+			if (CurrentTime - Button->LastLongPressTickTime > Button->LongPressTickInterval) // è¶…è¿‡Tické—´éš”
 			{
 				Button->LastLongPressTickTime = GetTick();
 
 				Button->LongPressTicks++;
 
-				if(Button->button_long_pressed_cb)
+				if (Button->button_long_pressed_cb)
 				{
-					Button->button_long_pressed_cb(Button->LongPressTicks); // ´¥·¢³¤°´»Øµ÷º¯Êý
+					Button->button_long_pressed_cb(Button->LongPressTicks); // è§¦å‘é•¿æŒ‰å›žè°ƒå‡½æ•°
 				}
 			}
 		}
 	}
 
-	/* ´¦Àí°´Å¥Á¬»÷¶¯×÷ */
+	/* å¤„ç†æŒ‰é’®è¿žå‡»åŠ¨ä½œ */
 
-	if(Button->ClickCnt > 0 && Button->LastState == 0 && (GetTick() - Button->LastReleasedTime) > Button->ClickInterval)
+	if (Button->ClickCnt > 0 && Button->LastState == 0 && (GetTick() - Button->LastReleasedTime) > Button->ClickInterval)
 	{
-		if(Button->button_clicked_cb)
+		if (Button->button_clicked_cb)
 		{
 			Button->button_clicked_cb(Button->ClickCnt);
 		}
 
-		Button->ClickCnt = 0; // Çå³ýÁ¬»÷¼ÇÂ¼
+		Button->ClickCnt = 0; // æ¸…é™¤è¿žå‡»è®°å½•
 	}
 }

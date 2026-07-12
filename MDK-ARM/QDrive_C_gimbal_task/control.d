@@ -1,7 +1,7 @@
 qdrive_c_gimbal_task\control.o: ..\application\control.c
 qdrive_c_gimbal_task\control.o: ..\application\control.h
-qdrive_c_gimbal_task\control.o: ..\application\receive.h
 qdrive_c_gimbal_task\control.o: E:\keil5\Core\ARM\ARMCC\Bin\..\include\stdint.h
+qdrive_c_gimbal_task\control.o: ..\application\receive.h
 qdrive_c_gimbal_task\control.o: ..\application\pid.h
 qdrive_c_gimbal_task\control.o: ../Core/Inc/main.h
 qdrive_c_gimbal_task\control.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h

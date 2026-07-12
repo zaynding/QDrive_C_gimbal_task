@@ -31,6 +31,7 @@
 #include "control.h"
 #include "bmi_dection.h"
 #include "user_key.h"
+#include "gimbal.h"
 #include "string.h"
 
 /* USER CODE END Includes */
@@ -105,8 +106,7 @@ int main(void)
   Vision_Init();     // 依赖 huart6 + DMA
   HAL_UART_Transmit(&huart1,(uint8_t*)"BOOT\r\n", 6, 100);
   User_Key_Init();
-  //BMI088_Init();     // 依赖 hspi1 + GPIO 片选;返回后EXTI自动驱动1kHz采样链
-  //Control_Init();    // 依赖 hcan1;PID/QD4310使能
+  Gimbal_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -117,7 +117,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     
-    //1kHz内环(Mahony姿态+Control_Proc)全部在陀螺DRDY EXTI+SPI DMA回调里完成
+    Gimbal_Task();
     //USART1_Proc();
     User_Key_Proc();
     //HAL_UART_Transmit(&huart1, (uint8_t *)"Hello, World!\r\n", 15, HAL_MAX_DELAY);

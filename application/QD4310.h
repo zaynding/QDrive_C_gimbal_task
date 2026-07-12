@@ -81,6 +81,14 @@ void QD4310_SetCurrent(QD4310_t *motor, float current);
 
 void QD4310_SendCommand(QD4310_t *motor, QD4310_Command_t cmd, int16_t value);
 
+void QD4310_FeedbackInit(void);
+float QD4310_GetYawAngle(void);
+float QD4310_GetPitchAngle(void);
+uint8_t QD4310_IsYawOnline(uint32_t timeout_ms);
+uint8_t QD4310_IsPitchOnline(uint32_t timeout_ms);
+uint8_t QD4310_IsYawEnabled(void);
+uint8_t QD4310_IsPitchEnabled(void);
+
 // 数学常数定义
 #define QD4310_PI (3.14159265358979323846f)
 #define QD4310_TWO_PI (2.0f * QD4310_PI)

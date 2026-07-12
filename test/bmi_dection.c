@@ -34,5 +34,3 @@ void USART1_Proc(void)
 
     HAL_UART_Transmit(&huart1, (uint8_t *)buf, len, HAL_MAX_DELAY);
 }
-
-
