@@ -1,9 +1,12 @@
 #include "gimbal.h"
 #include "control.h"
 #include "bmi088.h"
+#include "receive.h"
+#include "user_key.h"
 #include "main.h"
 
 #define MOTOR_ENABLE_RETRY_MS (10U)
+#define LASER_VISION_TIMEOUT_MS (100U)
 
 static GimbalState_t gimbal_state = GIMBAL_STATE_UNINITIALIZED;
 static uint32_t last_motor_retry_ms;
@@ -30,6 +33,25 @@ static uint8_t start_stability_control(void)
     if (!Control_EnableStability())
         return 0U;
     return Control_Start();
+}
+
+// 根据视觉目标状态自动控制激光.
+static void update_tracking_laser(void)
+{
+    static GimbalState_t previous_state = GIMBAL_STATE_UNINITIALIZED;
+    const VisionErr_t *vision = Vision_GetErr();
+
+    if (gimbal_state == GIMBAL_STATE_RUNNING)
+    {
+        uint8_t target_valid = vision->valid && Vision_IsOnline(LASER_VISION_TIMEOUT_MS);
+        User_Laser_Set(target_valid);
+    }
+    else if (previous_state == GIMBAL_STATE_RUNNING)
+    {
+        User_Laser_Set(0U);
+    }
+
+    previous_state = gimbal_state;
 }
 
 // 初始化云台控制和BMI088并进入标定状态.
@@ -82,6 +104,8 @@ void Gimbal_Task(void)
         default:
             break;
     }
+
+    update_tracking_laser();
 }
 
 // 返回当前云台运行状态.

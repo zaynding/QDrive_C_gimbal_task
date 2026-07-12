@@ -33,3 +33,4 @@ qdrive_c_gimbal_task\user_key.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_h
 qdrive_c_gimbal_task\user_key.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h
 qdrive_c_gimbal_task\user_key.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 qdrive_c_gimbal_task\user_key.o: ../my_lib/button.h
+qdrive_c_gimbal_task\user_key.o: ..\application\gimbal.h

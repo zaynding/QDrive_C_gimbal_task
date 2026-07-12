@@ -5,5 +5,6 @@
 
 void User_Key_Init(void);
 void User_Key_Proc(void);
+void User_Laser_Set(uint8_t enable);
 
 #endif

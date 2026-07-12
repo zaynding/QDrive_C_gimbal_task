@@ -34,3 +34,5 @@ qdrive_c_gimbal_task\gimbal.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal
 qdrive_c_gimbal_task\gimbal.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h
 qdrive_c_gimbal_task\gimbal.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h
 qdrive_c_gimbal_task\gimbal.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
+qdrive_c_gimbal_task\gimbal.o: ..\application\receive.h
+qdrive_c_gimbal_task\gimbal.o: ..\application\user_key.h

@@ -40,9 +40,9 @@ I (../Core/Inc/usart.h)(0x6A48E1C6)
 I (../Core/Inc/gpio.h)(0x6A489664)
 I (../application/receive.h)(0x6A5362F2)
 I (../application/bmi088.h)(0x6A4B9B70)
-I (../application/control.h)(0x6A5361E4)
+I (../application/control.h)(0x6A5398B9)
 I (../test/bmi_dection.h)(0x6A535F5D)
-I (../application/user_key.h)(0x6A535F1C)
+I (../application/user_key.h)(0x6A5372C9)
 I (../application/gimbal.h)(0x6A53621F)
 I (E:\keil5\Core\ARM\ARMCC\include\string.h)(0x6025237E)
 F (../Core/Src/gpio.c)(0x6A535F2B)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\gpio.o --omf_browse qdrive_c_gimbal_task\gpio.crf --depend qdrive_c_gimbal_task\gpio.d)
@@ -873,8 +873,8 @@ I (..\application\QD4310.h)(0x6A536190)
 I (E:\keil5\Core\ARM\ARMCC\include\stdbool.h)(0x6025237C)
 I (../Core/Inc/can.h)(0x6A489664)
 F (..\application\QD4310.h)(0x6A536190)()
-F (..\application\control.c)(0x6A536543)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\control.o --omf_browse qdrive_c_gimbal_task\control.crf --depend qdrive_c_gimbal_task\control.d)
-I (..\application\control.h)(0x6A5361E4)
+F (..\application\control.c)(0x6A5398BB)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\control.o --omf_browse qdrive_c_gimbal_task\control.crf --depend qdrive_c_gimbal_task\control.d)
+I (..\application\control.h)(0x6A5398B9)
 I (E:\keil5\Core\ARM\ARMCC\include\stdint.h)(0x6025237E)
 I (..\application\receive.h)(0x6A5362F2)
 I (..\application\pid.h)(0x6A5362A1)
@@ -913,11 +913,11 @@ I (E:\keil5\Core\ARM\ARMCC\include\stdbool.h)(0x6025237C)
 I (../Core/Inc/can.h)(0x6A489664)
 I (..\application\bmi088.h)(0x6A4B9B70)
 I (E:\keil5\Core\ARM\ARMCC\include\math.h)(0x60252378)
-F (..\application\control.h)(0x6A5361E4)()
-F (..\application\gimbal.c)(0x6A536544)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\gimbal.o --omf_browse qdrive_c_gimbal_task\gimbal.crf --depend qdrive_c_gimbal_task\gimbal.d)
+F (..\application\control.h)(0x6A5398B9)()
+F (..\application\gimbal.c)(0x6A5398BD)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\gimbal.o --omf_browse qdrive_c_gimbal_task\gimbal.crf --depend qdrive_c_gimbal_task\gimbal.d)
 I (..\application\gimbal.h)(0x6A53621F)
 I (E:\keil5\Core\ARM\ARMCC\include\stdint.h)(0x6025237E)
-I (..\application\control.h)(0x6A5361E4)
+I (..\application\control.h)(0x6A5398B9)
 I (..\application\bmi088.h)(0x6A4B9B70)
 I (../Core/Inc/main.h)(0x6A4C83E2)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h)(0x69F044F7)
@@ -949,6 +949,8 @@ I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h)(0x69F044F7)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h)(0x69F044F7)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h)(0x69F044F7)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h)(0x69F044F7)
+I (..\application\receive.h)(0x6A5362F2)
+I (..\application\user_key.h)(0x6A5372C9)
 F (..\application\gimbal.h)(0x6A53621F)()
 F (..\application\receive.c)(0x6A536548)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\receive.o --omf_browse qdrive_c_gimbal_task\receive.crf --depend qdrive_c_gimbal_task\receive.d)
 I (..\application\receive.h)(0x6A5362F2)
@@ -1020,14 +1022,14 @@ I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h)(0x69F044F7)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h)(0x69F044F7)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h)(0x69F044F7)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h)(0x69F044F7)
-I (..\application\control.h)(0x6A5361E4)
+I (..\application\control.h)(0x6A5398B9)
 I (../my_lib/qmath.h)(0x6A535F72)
 I (E:\keil5\Core\ARM\ARMCC\include\math.h)(0x60252378)
 I (../Core/Inc/spi.h)(0x6A48B918)
 I (../Core/Inc/gpio.h)(0x6A489664)
 F (..\application\bmi088.h)(0x6A4B9B70)()
-F (..\application\user_key.c)(0x6A535F17)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\user_key.o --omf_browse qdrive_c_gimbal_task\user_key.crf --depend qdrive_c_gimbal_task\user_key.d)
-I (..\application\user_key.h)(0x6A535F1C)
+F (..\application\user_key.c)(0x6A5372CB)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\user_key.o --omf_browse qdrive_c_gimbal_task\user_key.crf --depend qdrive_c_gimbal_task\user_key.d)
+I (..\application\user_key.h)(0x6A5372C9)
 I (../Core/Inc/main.h)(0x6A4C83E2)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h)(0x69F044F7)
 I (../Core/Inc/stm32f4xx_hal_conf.h)(0x6A48B918)
@@ -1060,7 +1062,8 @@ I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h)(0x69F044F7)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h)(0x69F044F7)
 I (../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h)(0x69F044F7)
 I (../my_lib/button.h)(0x6A535F51)
-F (..\application\user_key.h)(0x6A535F1C)()
+I (..\application\gimbal.h)(0x6A53621F)
+F (..\application\user_key.h)(0x6A5372C9)()
 F (..\my_lib\button.c)(0x6A535F4D)(--c99 -c --cpu Cortex-M4.fp.sp -g -O3 --apcs=interwork --split_sections -I ../Core/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../application -I ../my_lib -I ../test-I.\RTE\_QDrive_C_gimbal_task-IE:\keil5\Pack\ARM\CMSIS\5.9.0\CMSIS\Core\Include-D__UVISION_VERSION="537" -D_RTE_ -DSTM32F407xx -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F407xx-o qdrive_c_gimbal_task\button.o --omf_browse qdrive_c_gimbal_task\button.crf --depend qdrive_c_gimbal_task\button.d)
 I (..\my_lib\button.h)(0x6A535F51)
 I (../Core/Inc/main.h)(0x6A4C83E2)

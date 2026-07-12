@@ -14,7 +14,8 @@
 #define MOTOR_TIMEOUT_MS (50U)
 #define IMU_TIMEOUT_MS (10U)
 #define ERR_LP_ALPHA (0.3f)
-#define W_MAX_RADPS (100.0f)
+#define W_MAX_RADPS (4.0f)
+#define YAW_MAX_RAD (QD4310_PI / 6.0f)
 #define PITCH_MAX_RAD (0.5f)
 
 static PID_TypeDef pid_yaw;
@@ -28,6 +29,7 @@ static float yaw_err_lp;
 static float pitch_err_lp;
 
 static float pitch_imu_zero;
+static float yaw_motor_zero;
 static float pitch_motor_zero;
 
 static uint32_t last_vision_time_ms;
@@ -39,6 +41,19 @@ static uint8_t stability_enabled;
 static uint8_t control_started;
 static volatile uint8_t control_update_pending;
 static volatile uint32_t last_imu_update_ms;
+
+// 无有效视觉目标时停止电机并对齐当前角度.
+static void stop_tracking(float yaw_fb, float pitch_fb)
+{
+    yaw_ref = yaw_fb;
+    pitch_ref = pitch_fb;
+    yaw_err_lp = 0.0f;
+    pitch_err_lp = 0.0f;
+    PID_Reset(&pid_yaw);
+    PID_Reset(&pid_pitch);
+    SetGimbal0Speed(0.0f);
+    SetGimbal1Speed(0.0f);
+}
 
 // 将角度限制到[-pi, pi].
 static float wrap_pi(float angle)
@@ -105,8 +120,8 @@ static void switch_feedback(uint8_t enable)
 void Control_Init(void)
 {
     /* Example gains converted from discrete 1 kHz PID to the dt-based PID. */
-    PID_Init(&pid_yaw, 5.0f, 100.0f, 0.11f);
-    PID_Init(&pid_pitch, 4.6f, 170.0f, 0.03f);
+    PID_Init(&pid_yaw, 1.0f, 5.0f, 0.11f);
+    PID_Init(&pid_pitch, 1.0f, 5.0f, 0.03f);
     PID_LimitConfig(&pid_yaw, W_MAX_RADPS, -W_MAX_RADPS);
     PID_LimitConfig(&pid_pitch, W_MAX_RADPS, -W_MAX_RADPS);
     PID_ChangeSP(&pid_yaw, 0.0f);
@@ -126,6 +141,7 @@ void Control_Init(void)
     yaw_err_lp = 0.0f;
     pitch_err_lp = 0.0f;
     pitch_imu_zero = 0.0f;
+    yaw_motor_zero = 0.0f;
     pitch_motor_zero = 0.0f;
     last_vision_time_ms = 0U;
     vision_frame_seen = 0U;
@@ -200,6 +216,7 @@ uint8_t Control_ResetAttitude(void)
     get_feedback_angle(&old_yaw, &old_pitch);
     BMI088_YawReset();
     pitch_imu_zero = BMI088_GetPitch();
+    yaw_motor_zero = QD4310_GetYawAngle();
     pitch_motor_zero = QD4310_GetPitchAngle();
     attitude_reset = 1U;
     get_feedback_angle(&new_yaw, &new_pitch);
@@ -311,14 +328,20 @@ void Control_Proc(void)
     }
 
     vision = Vision_GetErr();
-    if (vision->valid && Vision_IsOnline(VISION_TIMEOUT_MS) &&
-        (!vision_frame_seen || vision->rx_time_ms != last_vision_time_ms))
+    if (!vision->valid || vision->rx_time_ms == 0U ||
+        !Vision_IsOnline(VISION_TIMEOUT_MS))
+    {
+        stop_tracking(yaw_fb, pitch_fb);
+        return;
+    }
+
+    if (!vision_frame_seen || vision->rx_time_ms != last_vision_time_ms)
     {
         float target_x = VISION_LASER_X + (float)vision->ex_px;
         float target_y = VISION_LASER_Y + (float)vision->ey_px;
 
-        yaw_error = atan2f(target_x - VISION_CX, VISION_FX) -
-                    atan2f(VISION_LASER_X - VISION_CX, VISION_FX);
+        yaw_error = -(atan2f(target_x - VISION_CX, VISION_FX) -
+                      atan2f(VISION_LASER_X - VISION_CX, VISION_FX));
         pitch_error = -(atan2f(target_y - VISION_CY, VISION_FY) -
                         atan2f(VISION_LASER_Y - VISION_CY, VISION_FY));
 
@@ -337,9 +360,22 @@ void Control_Proc(void)
     w_pitch = PID_Compute(&pid_pitch, -pitch_err_lp);
 
     {
+        float yaw_from_zero = wrap_pi(QD4310_GetYawAngle() - yaw_motor_zero);
+        float yaw_motor_command = w_yaw * YAW_MOTOR_DIR;
         float pitch_from_zero = wrap_pi(QD4310_GetPitchAngle() - pitch_motor_zero);
-        if ((w_pitch > 0.0f && pitch_from_zero >= PITCH_MAX_RAD) ||
-            (w_pitch < 0.0f && pitch_from_zero <= -PITCH_MAX_RAD))
+        float pitch_motor_command = w_pitch * PITCH_MOTOR_DIR;
+
+        if ((yaw_motor_command > 0.0f && yaw_from_zero >= YAW_MAX_RAD) ||
+            (yaw_motor_command < 0.0f && yaw_from_zero <= -YAW_MAX_RAD))
+        {
+            yaw_ref = yaw_fb;
+            yaw_err_lp = 0.0f;
+            PID_Reset(&pid_yaw);
+            w_yaw = 0.0f;
+        }
+
+        if ((pitch_motor_command > 0.0f && pitch_from_zero >= PITCH_MAX_RAD) ||
+            (pitch_motor_command < 0.0f && pitch_from_zero <= -PITCH_MAX_RAD))
         {
             pitch_ref = pitch_fb;
             pitch_err_lp = 0.0f;
