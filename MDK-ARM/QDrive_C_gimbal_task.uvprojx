@@ -900,6 +900,16 @@
               <FileType>5</FileType>
               <FilePath>..\application\bmi088.h</FilePath>
             </File>
+            <File>
+              <FileName>user_key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\user_key.c</FilePath>
+            </File>
+            <File>
+              <FileName>user_key.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\application\user_key.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -31,6 +31,7 @@
 "qdrive_c_gimbal_task\gimbal.o"
 "qdrive_c_gimbal_task\receive.o"
 "qdrive_c_gimbal_task\bmi088.o"
+"qdrive_c_gimbal_task\user_key.o"
 "qdrive_c_gimbal_task\button.o"
 "qdrive_c_gimbal_task\delay.o"
 "qdrive_c_gimbal_task\qmath.o"

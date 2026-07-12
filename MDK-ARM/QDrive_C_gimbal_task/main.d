@@ -40,4 +40,5 @@ qdrive_c_gimbal_task\main.o: ../application/receive.h
 qdrive_c_gimbal_task\main.o: ../application/bmi088.h
 qdrive_c_gimbal_task\main.o: ../application/control.h
 qdrive_c_gimbal_task\main.o: ../test/bmi_dection.h
+qdrive_c_gimbal_task\main.o: ../application/user_key.h
 qdrive_c_gimbal_task\main.o: E:\keil5\Core\ARM\ARMCC\Bin\..\include\string.h
