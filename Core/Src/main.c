@@ -118,7 +118,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
     
     Gimbal_Task();
-    //USART1_Proc();
+    USART1_Proc();
     User_Key_Proc();
     //HAL_UART_Transmit(&huart1, (uint8_t *)"Hello, World!\r\n", 15, HAL_MAX_DELAY);
     // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);

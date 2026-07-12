@@ -252,14 +252,22 @@ static void start_gyro_dma(void)
 {
     HAL_GPIO_WritePin(GYRO, GPIO_PIN_RESET);
     imu_phase = IMU_PHASE_GYRO;
-    HAL_SPI_TransmitReceive_DMA(&hspi1, gyro_tx, gyro_rx, 7);
+    if (HAL_SPI_TransmitReceive_DMA(&hspi1, gyro_tx, gyro_rx, 7) != HAL_OK)
+    {
+        HAL_GPIO_WritePin(GYRO, GPIO_PIN_SET);
+        imu_phase = IMU_PHASE_IDLE;
+    }
 }
 
 static void start_accel_dma(void)
 {
     HAL_GPIO_WritePin(ACCEL, GPIO_PIN_RESET);
     imu_phase = IMU_PHASE_ACCEL;
-    HAL_SPI_TransmitReceive_DMA(&hspi1, accel_tx, accel_rx, 8);
+    if (HAL_SPI_TransmitReceive_DMA(&hspi1, accel_tx, accel_rx, 8) != HAL_OK)
+    {
+        HAL_GPIO_WritePin(ACCEL, GPIO_PIN_SET);
+        imu_phase = IMU_PHASE_IDLE;
+    }
 }
 
 //把陀螺 rx[1..6] (小端16位×3) 转成 gx/gy/gz (rad/s)
@@ -324,6 +332,17 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
         imu_phase = IMU_PHASE_IDLE;
         Control_RequestUpdateFromISR();
     }
+}
+
+// SPI或DMA异常后释放片选并允许下一次数据就绪中断重新采样.
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
+{
+    if (hspi->Instance != SPI1)
+        return;
+
+    HAL_GPIO_WritePin(GYRO, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(ACCEL, GPIO_PIN_SET);
+    imu_phase = IMU_PHASE_IDLE;
 }
 
 /* ==================== 只读getter ==================== */

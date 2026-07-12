@@ -38,4 +38,5 @@ qdrive_c_gimbal_task\control.o: ..\application\QD4310.h
 qdrive_c_gimbal_task\control.o: E:\keil5\Core\ARM\ARMCC\Bin\..\include\stdbool.h
 qdrive_c_gimbal_task\control.o: ../Core/Inc/can.h
 qdrive_c_gimbal_task\control.o: ..\application\bmi088.h
+qdrive_c_gimbal_task\control.o: ../test/bmi_dection.h
 qdrive_c_gimbal_task\control.o: E:\keil5\Core\ARM\ARMCC\Bin\..\include\math.h

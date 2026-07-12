@@ -3,6 +3,7 @@
 #include "pid.h"
 #include "QD4310.h"
 #include "bmi088.h"
+#include "bmi_dection.h"
 #include "can.h"
 #include <math.h>
 
@@ -120,8 +121,8 @@ static void switch_feedback(uint8_t enable)
 void Control_Init(void)
 {
     /* Example gains converted from discrete 1 kHz PID to the dt-based PID. */
-    PID_Init(&pid_yaw, 1.0f, 5.0f, 0.11f);
-    PID_Init(&pid_pitch, 1.0f, 5.0f, 0.03f);
+    PID_Init(&pid_yaw, 1.2f, 0.0f, 0.0f);
+    PID_Init(&pid_pitch, 1.2f, 0.0f, 0.0f);
     PID_LimitConfig(&pid_yaw, W_MAX_RADPS, -W_MAX_RADPS);
     PID_LimitConfig(&pid_pitch, W_MAX_RADPS, -W_MAX_RADPS);
     PID_ChangeSP(&pid_yaw, 0.0f);
@@ -313,6 +314,10 @@ void Control_Proc(void)
 
     if (!Control_AreMotorsReady() || !Control_IsIMUOnline())
     {
+        if (!Control_AreMotorsReady())
+            USART1_SetExitReason(USART1_EXIT_MOTOR_NOT_READY);
+        else
+            USART1_SetExitReason(USART1_EXIT_IMU_OFFLINE);
         Control_Stop();
         return;
     }

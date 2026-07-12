@@ -3,6 +3,7 @@
 #include "bmi088.h"
 #include "receive.h"
 #include "user_key.h"
+#include "bmi_dection.h"
 #include "main.h"
 
 #define MOTOR_ENABLE_RETRY_MS (10U)
@@ -86,6 +87,12 @@ void Gimbal_Task(void)
         case GIMBAL_STATE_RUNNING:
             if (!Control_AreMotorsReady() || !Control_IsIMUOnline() || !Control_IsStarted())
             {
+                if (!Control_AreMotorsReady())
+                    USART1_SetExitReason(USART1_EXIT_MOTOR_NOT_READY);
+                else if (!Control_IsIMUOnline())
+                    USART1_SetExitReason(USART1_EXIT_IMU_OFFLINE);
+                else
+                    USART1_SetExitReason(USART1_EXIT_CONTROL_STOPPED);
                 Control_Stop();
                 gimbal_state = GIMBAL_STATE_RECOVERING;
             }
