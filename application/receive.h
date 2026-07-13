@@ -4,17 +4,17 @@
 #include <stdint.h>
 
 /*
- * 树莓派发送 ex=target_x-223, ey=target_y-221.
- * 以下参数来自640x480相机标定;当前按约定忽略畸变.
+ * 树莓派发送 ex=target_x-278.75, ey=target_y-276.25.
+ * 以下参数为 800x600 分辨率，由原标定结果按 1.25 倍缩放;当前按约定忽略畸变.
  */
-#define VISION_IMG_W 640.0f
-#define VISION_IMG_H 480.0f
-#define VISION_CX 298.1835178f
-#define VISION_CY 230.6594528f
-#define VISION_FX 776.9054244f
-#define VISION_FY 582.5955349f
-#define VISION_LASER_X 223.0f
-#define VISION_LASER_Y 221.0f
+#define VISION_IMG_W 800.0f
+#define VISION_IMG_H 600.0f
+#define VISION_CX 372.7293973f
+#define VISION_CY 288.3243160f
+#define VISION_FX 971.1317805f
+#define VISION_FY 728.2444186f
+#define VISION_LASER_X 278.75f
+#define VISION_LASER_Y 276.25f
 
 typedef struct
 {
