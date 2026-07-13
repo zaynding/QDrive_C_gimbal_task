@@ -13,7 +13,7 @@ static volatile uint8_t pitch_feedback_valid;
 static volatile uint8_t yaw_enabled;
 static volatile uint8_t pitch_enabled;
 
-// 限制函数，用于替代C++的std::clamp
+// 限制函数
 static float QD4310_Clamp(float value, float min, float max)
 {
     if (value < min)

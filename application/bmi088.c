@@ -288,7 +288,7 @@ static void spi_dma_init(void)
     __HAL_DMA_ENABLE_IT(hspi1.hdmarx, DMA_IT_FE);
 }
 
-// 按示例方式重装并启动一次SPI1收发DMA.
+// 重装并启动一次SPI1收发DMA.
 static void spi_dma_start(uint8_t *tx_buf, uint8_t *rx_buf, uint16_t length)
 {
     spi_dma_stop();

@@ -15,7 +15,7 @@
 #define MOTOR_TIMEOUT_MS (50U)
 #define IMU_TIMEOUT_MS (10U)
 #define ERR_LP_ALPHA (0.3f)
-#define W_MAX_RADPS (4.0f)
+#define W_MAX_RADPS (6.0f)
 #define YAW_MAX_RAD (QD4310_PI / 6.0f)
 #define PITCH_MAX_RAD (0.5f)
 
@@ -38,7 +38,7 @@ static uint8_t vision_frame_seen;
 static uint8_t control_initialized;
 static uint8_t ref_initialized;
 static uint8_t attitude_reset;
-static uint8_t stability_enabled;
+static uint8_t stability_enabled;//云台自稳
 static uint8_t control_started;
 static volatile uint8_t control_update_pending;
 static volatile uint32_t last_imu_update_ms;
