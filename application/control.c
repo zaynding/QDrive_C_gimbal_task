@@ -43,19 +43,6 @@ static uint8_t control_started;
 static volatile uint8_t control_update_pending;
 static volatile uint32_t last_imu_update_ms;
 
-// 无有效视觉目标时停止电机并对齐当前角度.
-static void stop_tracking(float yaw_fb, float pitch_fb)
-{
-    yaw_ref = yaw_fb;
-    pitch_ref = pitch_fb;
-    yaw_err_lp = 0.0f;
-    pitch_err_lp = 0.0f;
-    PID_Reset(&pid_yaw);
-    PID_Reset(&pid_pitch);
-    SetGimbal0Speed(0.0f);
-    SetGimbal1Speed(0.0f);
-}
-
 // 将角度限制到[-pi, pi].
 static float wrap_pi(float angle)
 {
@@ -341,14 +328,9 @@ void Control_Proc(void)
     }
 
     vision = Vision_GetErr();
-    if (!vision->valid || vision->rx_time_ms == 0U ||
-        !Vision_IsOnline(VISION_TIMEOUT_MS))
-    {
-        stop_tracking(yaw_fb, pitch_fb);
-        return;
-    }
-
-    if (!vision_frame_seen || vision->rx_time_ms != last_vision_time_ms)
+    if (vision->valid && vision->rx_time_ms != 0U &&
+        Vision_IsOnline(VISION_TIMEOUT_MS) &&
+        (!vision_frame_seen || vision->rx_time_ms != last_vision_time_ms))
     {
         float target_x = VISION_LASER_X + (float)vision->ex_px;
         float target_y = VISION_LASER_Y + (float)vision->ey_px;
