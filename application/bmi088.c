@@ -184,7 +184,7 @@ uint8_t BMI088_Init(void)
 //原始为FLU,车体为FRD: gyro_z_body = -gyro_z_raw
 static void yaw_solve_step(void)
 {
-    float r = -gz;   //rad/s
+    float r = gz;   //rad/s
 
     if (!yaw_calibrated)
     {

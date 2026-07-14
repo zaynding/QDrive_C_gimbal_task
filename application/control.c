@@ -106,8 +106,8 @@ static void switch_feedback(uint8_t enable)
 void Control_Init(void)
 {
     /* Example gains converted from discrete 1 kHz PID to the dt-based PID. */
-    PID_Init(&pid_yaw, 3.3f, 0.1f, 0.2f);
-    PID_Init(&pid_pitch, 3.3f, 0.1f, 0.2f);
+    PID_Init(&pid_yaw, 3.3f, 0.1f, 0.12f);
+    PID_Init(&pid_pitch, 3.3f, 0.1f, 0.12f);
     PID_LimitConfig(&pid_yaw, W_MAX_RADPS, -W_MAX_RADPS);
     PID_LimitConfig(&pid_pitch, W_MAX_RADPS, -W_MAX_RADPS);
     PID_ChangeSP(&pid_yaw, 0.0f);
