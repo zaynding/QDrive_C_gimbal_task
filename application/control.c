@@ -16,7 +16,6 @@
 #define IMU_TIMEOUT_MS (10U)
 #define ERR_LP_ALPHA (0.3f)
 #define W_MAX_RADPS (6.0f)
-#define YAW_MAX_RAD (QD4310_PI / 6.0f)
 #define PITCH_MAX_RAD (0.5f)
 
 static PID_TypeDef pid_yaw;
@@ -30,7 +29,6 @@ static float yaw_err_lp;
 static float pitch_err_lp;
 
 static float pitch_imu_zero;
-static float yaw_motor_zero;
 static float pitch_motor_zero;
 
 static uint32_t last_vision_time_ms;
@@ -108,8 +106,8 @@ static void switch_feedback(uint8_t enable)
 void Control_Init(void)
 {
     /* Example gains converted from discrete 1 kHz PID to the dt-based PID. */
-    PID_Init(&pid_yaw, 3.3f, 0.1f, 0.2f);
-    PID_Init(&pid_pitch, 3.3f, 0.1f, 0.2f);
+    PID_Init(&pid_yaw, 5.0f, 0.0f, 0.19TIAOf);
+    PID_Init(&pid_pitch, 5.0f, 0.0f, 0.1f);
     PID_LimitConfig(&pid_yaw, W_MAX_RADPS, -W_MAX_RADPS);
     PID_LimitConfig(&pid_pitch, W_MAX_RADPS, -W_MAX_RADPS);
     PID_ChangeSP(&pid_yaw, 0.0f);
@@ -129,7 +127,6 @@ void Control_Init(void)
     yaw_err_lp = 0.0f;
     pitch_err_lp = 0.0f;
     pitch_imu_zero = 0.0f;
-    yaw_motor_zero = 0.0f;
     pitch_motor_zero = 0.0f;
     last_vision_time_ms = 0U;
     vision_frame_seen = 0U;
@@ -212,7 +209,6 @@ uint8_t Control_ResetAttitude(void)
     get_feedback_angle(&old_yaw, &old_pitch);
     BMI088_YawReset();
     pitch_imu_zero = BMI088_GetPitch();
-    yaw_motor_zero = QD4310_GetYawAngle();
     pitch_motor_zero = QD4310_GetPitchAngle();
     attitude_reset = 1U;
     get_feedback_angle(&new_yaw, &new_pitch);
@@ -355,19 +351,8 @@ void Control_Proc(void)
     w_pitch = PID_Compute(&pid_pitch, -pitch_err_lp);
 
     {
-        float yaw_from_zero = wrap_pi(QD4310_GetYawAngle() - yaw_motor_zero);
-        float yaw_motor_command = w_yaw * YAW_MOTOR_DIR;
         float pitch_from_zero = wrap_pi(QD4310_GetPitchAngle() - pitch_motor_zero);
         float pitch_motor_command = w_pitch * PITCH_MOTOR_DIR;
-
-        if ((yaw_motor_command > 0.0f && yaw_from_zero >= YAW_MAX_RAD) ||
-            (yaw_motor_command < 0.0f && yaw_from_zero <= -YAW_MAX_RAD))
-        {
-            yaw_ref = yaw_fb;
-            yaw_err_lp = 0.0f;
-            PID_Reset(&pid_yaw);
-            w_yaw = 0.0f;
-        }
 
         if ((pitch_motor_command > 0.0f && pitch_from_zero >= PITCH_MAX_RAD) ||
             (pitch_motor_command < 0.0f && pitch_from_zero <= -PITCH_MAX_RAD))
